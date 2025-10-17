@@ -1,0 +1,13 @@
+Reglas
+1. No contengan datos personales, identificadores directos (nombres, correos, direcciones, cedulas (pasaportes, ni ids), fecha de nacimiento completas, numero de teléfonos)
+2. Identificadores indirectos, datos en conjunto que podrían identificar una persona (cargo, profesión, edad, nivel de estudios, genero, entre otros)
+3. Datos sensibles, datos en condición de vulnerabilidad al titular (afiliación política, etnia, preferencia sexual, victima de la violencia, desmovilizado, salud-diagnosticos). Dos o más identificadores se comparten en la base.
+4. Si los datos son imágenes, no deben contener rostros, deben estar suficientemente alterados para que no se puedan identificar.
+
+Proceso de revisión de datos
+1. Conocer si los datos son estructurados o no estructurados.
+2. Revisar el diccionario de datos. Identificar posibles preguntas que se deben revisar en detalle.
+
+
+Cargar un diccionario de datos, detectar que no incluya variables que mencionen un vocabulario posible de nombre de variables que contengan datos personas, si hay una ir a otro conjunto de datos y traer los 10 primeros datos.
+Cargar un conjunto de datos y revisar que columnas tienen datos unicos, luego traer la fila de esa columna que tiene datos únicos.
