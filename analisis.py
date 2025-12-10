@@ -1,5 +1,6 @@
 import pandas as pd
 import re
+import warnings
 
 
 def cargar_diccionario(ruta_archivo='diccionario.csv'):
@@ -206,7 +207,9 @@ def buscar_por_patron(df, columna='Field Label', patron='nombre', case_sensitive
         
         # Filtrar el DataFrame
         # Convertir la columna a string para evitar errores con NaN
-        mascara = df[columna].astype(str).str.contains(patron_extendido, regex=True, flags=flags, na=False)
+        with warnings.catch_warnings():
+            warnings.simplefilter("ignore")
+            mascara = df[columna].astype(str).str.contains(patron_extendido, regex=True, flags=flags, na=False)
         df_filtrado = df[mascara].copy()
         
         # Mostrar resultados
@@ -227,7 +230,7 @@ def buscar_por_patron(df, columna='Field Label', patron='nombre', case_sensitive
         return pd.DataFrame()
 
 
-def buscar_correo_electronico(df, columna='Field Label', mostrar_resultados=False):
+def buscar_correo_electronico(df, columna='Field Label', imprimir=True):
     """
     Busca campos relacionados con correo electrónico usando expresiones regulares.
     
@@ -237,8 +240,8 @@ def buscar_correo_electronico(df, columna='Field Label', mostrar_resultados=Fals
         DataFrame donde buscar
     columna : str, opcional
         Nombre de la columna donde buscar. Por defecto es 'Field Label'
-    mostrar_resultados : bool, opcional
-        Si es True, imprime los resultados de la búsqueda. Por defecto es False
+    imprimir : bool, opcional
+        Si es True, imprime los resultados de la búsqueda. Por defecto es True
     
     Retorna:
     --------
@@ -248,21 +251,18 @@ def buscar_correo_electronico(df, columna='Field Label', mostrar_resultados=Fals
     try:
         # Verificar que el DataFrame no sea None
         if df is None:
-            if mostrar_resultados:
-                print("Error: El DataFrame proporcionado es None")
+            print("Error: El DataFrame proporcionado es None")
             return pd.DataFrame()
         
         # Verificar que el DataFrame no esté vacío
         if df.empty:
-            if mostrar_resultados:
-                print("Advertencia: El DataFrame está vacío")
+            print("Advertencia: El DataFrame está vacío")
             return pd.DataFrame()
         
         # Verificar que la columna existe
         if columna not in df.columns:
-            if mostrar_resultados:
-                print(f"Error: La columna '{columna}' no existe en el DataFrame")
-                print(f"Columnas disponibles: {list(df.columns)}")
+            print(f"Error: La columna '{columna}' no existe en el DataFrame")
+            print(f"Columnas disponibles: {list(df.columns)}")
             return pd.DataFrame()
         
         # Patrón de expresión regular para "correo electrónico" y variaciones
@@ -270,36 +270,181 @@ def buscar_correo_electronico(df, columna='Field Label', mostrar_resultados=Fals
         patron_correo = r'\b(correo[s]?(\s*(electr[oó]nico|electr[oó]nica))?|e-?mail[s]?|electronic\s*mail[s]?|mail[s]?|direcci[oó]n\s*de\s*correo|contact\s*email)\b'
         
         # Filtrar el DataFrame (case insensitive)
-        mascara = df[columna].astype(str).str.contains(
-            patron_correo, 
-            regex=True, 
-            flags=re.IGNORECASE, 
-            na=False
-        )
+        with warnings.catch_warnings():
+            warnings.simplefilter("ignore")
+            mascara = df[columna].astype(str).str.contains(
+                patron_correo, 
+                regex=True, 
+                flags=re.IGNORECASE, 
+                na=False
+            )
         df_filtrado = df[mascara].copy()
         
         # Mostrar resultados solo si se solicita
-        if mostrar_resultados:
-            print(f"Búsqueda de correo electrónico en la columna: '{columna}'")
+        if imprimir:
+            print(f"Búsqueda realizada en la columna: '{columna}'")
             print(f"Patrón utilizado: {patron_correo}")
             print(f"Coincidencias encontradas: {len(df_filtrado)}")
             
             if len(df_filtrado) > 0:
                 print(f"\nRegistros encontrados:")
                 print(f"Índices: {list(df_filtrado.index)}")
-                print("\n--- Campos de correo electrónico encontrados ---")
-                for idx, row in df_filtrado.iterrows():
-                    print(f"\n{idx + 1}. Variable: {row['Variable / Field Name']}")
-                    print(f"   Tipo: {row['Field Type']}")
-                    print(f"   Etiqueta: {row['Field Label']}")
             else:
-                print("\nNo se encontraron campos relacionados con correo electrónico")
+                print("\nNo se encontraron coincidencias con el patrón especificado")
         
         return df_filtrado
         
     except Exception as e:
-        if mostrar_resultados:
-            print(f"Error al buscar correo electrónico: {str(e)}")
+        print(f"Error al buscar correo electrónico: {str(e)}")
+        return pd.DataFrame()
+
+
+def buscar_direcciones(df, imprimir=True):
+    """
+    Busca campos relacionados con direcciones usando expresiones regulares.
+    
+    Parámetros:
+    -----------
+    df : pandas.DataFrame
+        DataFrame donde buscar
+    imprimir : bool, opcional
+        Si es True, imprime los resultados de la búsqueda. Por defecto es True
+    
+    Retorna:
+    --------
+    pandas.DataFrame
+        DataFrame filtrado con los registros relacionados con direcciones
+    """
+    try:
+        # Verificar que el DataFrame no sea None
+        if df is None:
+            print("Error: El DataFrame proporcionado es None")
+            return pd.DataFrame()
+        
+        # Verificar que el DataFrame no esté vacío
+        if df.empty:
+            print("Advertencia: El DataFrame está vacío")
+            return pd.DataFrame()
+        
+        # Buscar columnas que contengan "direccion" o "address"
+        columnas_direccion = [col for col in df.columns if 'direcci' in col.lower() or 'address' in col.lower()]
+        
+        if not columnas_direccion:
+            if imprimir:
+                print("No se encontraron columnas relacionadas con direcciones")
+            return pd.DataFrame()
+        
+        # Patrón de expresión regular para direcciones
+        # Incluye: dirección, address, calle, avenida, carrera, etc.
+        patron_direccion = r'\b(direcci[óo]n|address|calle|avenida|carrera|paseo|plaza|apto|apartamento|casa|número|n[°º]|barrio|localidad|municipio|ciudad|departamento|estado|provincia|país|país|código\s*postal|zipcode|zip|street|avenue|road|lane)\b'
+        
+        # Filtrar registros que contengan el patrón en cualquiera de las columnas de dirección
+        df_filtrado = pd.DataFrame()
+        
+        for columna in columnas_direccion:
+            with warnings.catch_warnings():
+                warnings.simplefilter("ignore")
+                mascara = df[columna].astype(str).str.contains(
+                    patron_direccion, 
+                    regex=True, 
+                    flags=re.IGNORECASE, 
+                    na=False
+                )
+            df_temp = df[mascara].copy()
+            df_filtrado = pd.concat([df_filtrado, df_temp]).drop_duplicates()
+        
+        # Mostrar resultados si se solicita
+        if imprimir:
+            print(f"Búsqueda realizada en columnas: {columnas_direccion}")
+            print(f"Patrón utilizado: {patron_direccion}")
+            print(f"Coincidencias encontradas: {len(df_filtrado)}")
+            
+            if len(df_filtrado) > 0:
+                print(f"\nRegistros encontrados:")
+                print(f"Índices: {list(df_filtrado.index)}")
+            else:
+                print("\nNo se encontraron coincidencias con el patrón especificado")
+        
+        return df_filtrado
+        
+    except Exception as e:
+        print(f"Error al buscar direcciones: {str(e)}")
+        return pd.DataFrame()
+
+
+def buscar_identificadores(df, imprimir=True):
+    """
+    Busca campos relacionados con identificadores usando expresiones regulares.
+    
+    Parámetros:
+    -----------
+    df : pandas.DataFrame
+        DataFrame donde buscar
+    imprimir : bool, opcional
+        Si es True, imprime los resultados de la búsqueda. Por defecto es True
+    
+    Retorna:
+    --------
+    pandas.DataFrame
+        DataFrame filtrado con los registros relacionados con identificadores
+    """
+    try:
+        # Verificar que el DataFrame no sea None
+        if df is None:
+            print("Error: El DataFrame proporcionado es None")
+            return pd.DataFrame()
+        
+        # Verificar que el DataFrame no esté vacío
+        if df.empty:
+            print("Advertencia: El DataFrame está vacío")
+            return pd.DataFrame()
+        
+        # Buscar columnas que contengan términos relacionados con identificadores
+        columnas_identificadores = [
+            col for col in df.columns 
+            if any(term in col.lower() for term in ['cedula', 'cédula', 'pasaporte', 'passport', 'id', 'identification', 'documento', 'carnet', 'license', 'numero de documento', 'id number', 'rfc', 'nif', 'nie', 'ssn'])
+        ]
+        
+        if not columnas_identificadores:
+            if imprimir:
+                print("No se encontraron columnas relacionadas con identificadores")
+            return pd.DataFrame()
+        
+        # Patrón de expresión regular para identificadores
+        # Incluye: cédula, pasaporte, ID, identificación, documento, carnet, etc.
+        patron_identificador = r'\b(c[ée]dula|pasaporte|passport|identification|identificaci[óo]n|documento|carnet|id|identity|license|licencia|rfc|nif|nie|ssn|tax\s*id|tax\s*number|social\s*security|numero\s*de\s*documento|n[°º]\s*documento|registro\s*civil|rut|cuit|curp)\b'
+        
+        # Filtrar registros que contengan el patrón en cualquiera de las columnas de identificadores
+        df_filtrado = pd.DataFrame()
+        
+        for columna in columnas_identificadores:
+            with warnings.catch_warnings():
+                warnings.simplefilter("ignore")
+                mascara = df[columna].astype(str).str.contains(
+                    patron_identificador, 
+                    regex=True, 
+                    flags=re.IGNORECASE, 
+                    na=False
+                )
+            df_temp = df[mascara].copy()
+            df_filtrado = pd.concat([df_filtrado, df_temp]).drop_duplicates()
+        
+        # Mostrar resultados si se solicita
+        if imprimir:
+            print(f"Búsqueda realizada en columnas: {columnas_identificadores}")
+            print(f"Patrón utilizado: {patron_identificador}")
+            print(f"Coincidencias encontradas: {len(df_filtrado)}")
+            
+            if len(df_filtrado) > 0:
+                print(f"\nRegistros encontrados:")
+                print(f"Índices: {list(df_filtrado.index)}")
+            else:
+                print("\nNo se encontraron coincidencias con el patrón especificado")
+        
+        return df_filtrado
+        
+    except Exception as e:
+        print(f"Error al buscar identificadores: {str(e)}")
         return pd.DataFrame()
 
 
@@ -426,18 +571,18 @@ if __name__ == "__main__":
     diccionario = cargar_diccionario()
     
     if diccionario is not None:
-        print("\nPrimeras 5 filas del diccionario:")
-        print(diccionario.head())
+        #print("\nPrimeras 5 filas del diccionario:")
+        #print(diccionario.head())
         
-        print("\n" + "="*60)
-        print("\nExtrayendo columnas específicas...")
-        print("="*60)
+        #print("\n" + "="*60)
+        #print("\nExtrayendo columnas específicas...")
+        #print("="*60)
         
         df_extraido = extraer_columnas_diccionario(diccionario)
         
         if df_extraido is not None:
-            print("\nPrimeras 10 filas del DataFrame extraído:")
-            print(df_extraido.head(10))
+            #print("\nPrimeras 10 filas del DataFrame extraído:")
+            #print(df_extraido.head(10))
             
             print("\n" + "="*60)
             print("\nGuardando DataFrame extraído...")
@@ -463,28 +608,32 @@ if __name__ == "__main__":
             print("="*60)
             
             # Buscar campos que contengan "correo" o "email" (con resultados visibles)
-            df_correos = buscar_correo_electronico(df_extraido, columna='Field Label', mostrar_resultados=False)
+            df_correos = buscar_correo_electronico(df_extraido, columna='Field Label', imprimir=True)
             
             if not df_correos.empty:
                 print(f"\nTotal de campos de correo encontrados: {len(df_correos)}")
             
             print("\n" + "="*60)
+            print("\nBuscando campos relacionados con 'direcciones'...")
+            print("="*60)
+            
+            # Buscar campos que contengan "dirección" o similares
+            df_direcciones = buscar_direcciones(df_extraido, imprimir=True)
+            
+            if not df_direcciones.empty:
+                print(f"\nTotal de campos de dirección encontrados: {len(df_direcciones)}")
+            
+            print("\n" + "="*60)
+            print("\nBuscando campos relacionados con 'identificadores'...")
+            print("="*60)
+            
+            # Buscar campos que contengan "cédula", "pasaporte", "ID", etc.
+            df_identificadores = buscar_identificadores(df_extraido, imprimir=True)
+            
+            if not df_identificadores.empty:
+                print(f"\nTotal de campos de identificadores encontrados: {len(df_identificadores)}")
+            
+            print("\n" + "="*60)
             print("\nExtrayendo contexto de coincidencias...")
             print("="*60)
             
-            # Ejemplo: extraer contexto del primer registro encontrado en df_nombres
-            if not df_nombres.empty:
-                primer_indice = df_nombres.index[0]
-                print(f"\nExtrayendo contexto del registro en índice {primer_indice}:")
-                
-                contexto = extraer_contexto_patron(df_nombres, primer_indice, columna='Field Label', patron='nombre', num_palabras=4)
-                
-                if contexto:
-                    print(f"\nTexto completo: {contexto['texto_completo'][:200]}...")
-                    print(f"Número de coincidencias: {contexto['num_coincidencias']}")
-                    
-                    for i, coincidencia in enumerate(contexto['coincidencias'], 1):
-                        print(f"\n--- Coincidencia {i} ---")
-                        print(f"Palabra encontrada: {coincidencia['palabra']}")
-                        print(f"Contexto: {coincidencia['contexto']}")
-
